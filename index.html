@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>  
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Telegraph Rd — 3D Tiles Drive</title>
@@ -462,7 +462,7 @@ function start(API_KEY, LAT, LON) {
       yaw += Math.tan(roll) * 9.81 / Math.max(airspeed, 30) * dt;
 
       plane.rotation.set(pitch, yaw, roll);
-      plane.getWorldDirection(fwd);          // -Z is nose-forward
+      plane.getWorldDirection(fwd).negate();   // getWorldDirection gives +Z; the nose is -Z
       pos.addScaledVector(fwd, airspeed * dt);
 
       // trade altitude for speed the way a real airframe does
