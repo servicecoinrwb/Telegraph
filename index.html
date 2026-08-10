@@ -3,46 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Telegraph Rd — 3D Tiles Drive</title>
+<title>Telegraph Rd — 3D Tiles</title>
 <style>
   :root {
-    --navy: #16263f;
-    --navy-lift: #1e3455;
-    --sky: #6fb7e3;
-    --cream: #f5efe3;
-    --rust: #b5512f;
-    --dim: rgba(245,239,227,0.45);
+    --navy:#16263f; --navy-lift:#1e3455; --sky:#6fb7e3;
+    --cream:#f5efe3; --rust:#b5512f; --dim:rgba(245,239,227,0.45);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   html, body { margin:0; height:100%; overflow:hidden; background:var(--navy);
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color:var(--cream); }
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; color:var(--cream); }
   canvas { display:block; }
 
   #gate { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(120% 100% at 50% 0%, var(--navy-lift), var(--navy) 70%); padding:24px; }
-  #gate .card { width:min(520px,100%); border:1px solid rgba(111,183,227,0.25); background:rgba(0,0,0,0.25);
-    padding:28px; }
-  #gate h1 { margin:0 0 4px; font-size:15px; letter-spacing:0.22em; text-transform:uppercase; color:var(--sky); font-weight:600; }
+    background:radial-gradient(120% 100% at 50% 0%, var(--navy-lift), var(--navy) 70%); padding:24px; overflow:auto; }
+  #gate .card { width:min(540px,100%); border:1px solid rgba(111,183,227,0.25);
+    background:rgba(0,0,0,0.25); padding:28px; }
+  #gate h1 { margin:0 0 4px; font-size:15px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--sky); font-weight:600; }
   #gate .sub { margin:0 0 22px; font-size:12px; line-height:1.7; color:var(--dim); }
-  label { display:block; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-bottom:7px; }
-  input { width:100%; padding:11px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(245,239,227,0.18);
-    color:var(--cream); font:inherit; font-size:13px; }
+  label { display:block; font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--dim); margin-bottom:7px; }
+  input { width:100%; padding:11px 12px; background:rgba(0,0,0,0.35);
+    border:1px solid rgba(245,239,227,0.18); color:var(--cream); font:inherit; font-size:13px; }
   input:focus { outline:2px solid var(--sky); outline-offset:1px; border-color:transparent; }
   .row { display:flex; gap:12px; }
   .row > div { flex:1; }
   .field { margin-bottom:16px; }
   .hint { font-size:11px; color:var(--dim); margin-top:7px; line-height:1.6; }
+  details { margin:4px 0 18px; }
+  summary { font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--sky);
+    cursor:pointer; padding:8px 0; }
   button { width:100%; margin-top:8px; padding:13px; background:var(--rust); border:0; color:var(--cream);
     font:inherit; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; }
   button:hover { background:#c95c36; }
   button:focus-visible { outline:2px solid var(--sky); outline-offset:2px; }
 
-  #hud { position:fixed; left:18px; bottom:18px; z-index:20; display:none; gap:1px; flex-direction:column;
+  #hud { position:fixed; left:18px; bottom:18px; z-index:20; display:none; flex-direction:column;
     border-left:2px solid var(--rust); padding-left:12px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
   #speed { font-size:42px; line-height:1; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; }
   #speed small { font-size:11px; letter-spacing:0.2em; color:var(--dim); margin-left:6px; }
-  .stat { font-size:11px; color:var(--dim); margin-top:6px; line-height:1.6; max-width:330px; }
+  .stat { font-size:11px; color:var(--dim); margin-top:6px; line-height:1.6; max-width:360px; }
   .stat b { color:var(--sky); font-weight:500; }
+  .stat i { color:var(--rust); font-style:normal; }
   #stream { display:flex; gap:3px; margin-top:9px; }
   #stream i { width:9px; height:4px; background:rgba(245,239,227,0.14); }
   #stream i.on { background:var(--sky); }
@@ -50,17 +52,23 @@
 
   #keys { position:fixed; right:18px; bottom:18px; z-index:20; display:none; text-align:right;
     font-size:10px; letter-spacing:0.14em; color:var(--dim); line-height:2; text-transform:uppercase; }
-  #err { position:fixed; top:0; left:0; right:0; z-index:40; background:var(--rust); padding:12px 18px;
-    font-size:12px; line-height:1.6; display:none; }
+  #err { position:fixed; top:0; left:0; right:0; z-index:40; background:var(--rust);
+    padding:12px 18px; font-size:12px; line-height:1.6; display:none; }
   #mode { position:fixed; top:16px; left:18px; z-index:20; display:none; font-size:11px;
     letter-spacing:0.22em; text-transform:uppercase; color:var(--sky); text-shadow:0 1px 3px rgba(0,0,0,0.9); }
   #compass { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:20; display:none;
-    font-size:20px; letter-spacing:0.14em; color:var(--cream); text-shadow:0 1px 4px rgba(0,0,0,0.95);
-    font-variant-numeric:tabular-nums; }
+    font-size:20px; letter-spacing:0.14em; text-shadow:0 1px 4px rgba(0,0,0,0.95); font-variant-numeric:tabular-nums; }
   #compass span { font-size:12px; color:var(--dim); margin-left:8px; letter-spacing:0.1em; }
   #jump { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:25; display:none;
-    width:min(420px,90vw); padding:22px; background:rgba(10,18,30,0.94);
-    border:1px solid rgba(111,183,227,0.3); }
+    width:min(430px,90vw); padding:22px; background:rgba(10,18,30,0.94); border:1px solid rgba(111,183,227,0.3); }
+  #drop { position:fixed; inset:0; z-index:28; display:none; align-items:center; justify-content:center;
+    background:rgba(10,18,30,0.85); border:3px dashed var(--sky); font-size:14px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--sky); }
+  #replay { position:fixed; top:14px; right:18px; z-index:20; display:none; text-align:right;
+    font-size:11px; line-height:1.8; color:var(--dim); text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+  #replay b { color:var(--sky); font-weight:500; }
+  #bar { width:220px; height:3px; background:rgba(245,239,227,0.18); margin-top:6px; margin-left:auto; }
+  #bar div { height:100%; width:0%; background:var(--rust); }
 </style>
 </head>
 <body>
@@ -68,12 +76,12 @@
 <div id="gate">
   <div class="card">
     <h1>Telegraph Rd</h1>
-    <p class="sub">Drive a van or fly a plane over Google's photorealistic 3D mesh. Nothing renders until you paste a key — tile data is fetched live and there's no offline fallback.</p>
+    <p class="sub">Drive, fly, or replay a GPS track over Google's photorealistic 3D mesh. Nothing renders until you paste a key — tile data is fetched live and there's no offline fallback.</p>
 
     <div class="field">
       <label for="key">Google Maps Platform API key</label>
       <input id="key" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
-      <p class="hint">Needs <b>Map Tiles API</b> enabled. The key stays in this tab's memory only — nothing is saved, so you'll paste it again next load.</p>
+      <p class="hint">Needs <b>Map Tiles API</b> enabled. Held in this tab's memory only — nothing is saved.</p>
     </div>
 
     <div class="row">
@@ -86,20 +94,40 @@
         <input id="lon" type="text" value="-83.2960">
       </div>
     </div>
-    <p class="hint" style="margin-top:-6px">Defaults to roughly 23093 Telegraph. Nudge them if you land in the wrong lot.</p>
 
-    <button id="go">Start driving</button>
+    <details>
+      <summary>Custom vehicle models (optional)</summary>
+      <div class="field" style="margin-top:12px">
+        <label for="vanurl">Van model — .glb URL</label>
+        <input id="vanurl" type="text" placeholder="https://…/van.glb" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="planeurl">Plane model — .glb URL</label>
+        <input id="planeurl" type="text" placeholder="https://…/plane.glb" spellcheck="false">
+      </div>
+      <p class="hint">Must allow cross-origin requests, so a raw GitHub URL or your own host works; most model-site preview links don't. Auto-scaled to size. If it faces the wrong way, press K to spin it 180°. Leave blank for the built-in shapes.</p>
+    </details>
+
+    <button id="go">Start</button>
   </div>
 </div>
 
 <div id="mode">Ground</div>
 <div id="compass">N <span>000&deg;</span></div>
 
+<div id="replay">
+  <div id="rtime">—</div>
+  <div id="rinfo">—</div>
+  <div id="bar"><div></div></div>
+</div>
+
 <div id="jump">
   <label for="jumpto">Jump to coordinates</label>
   <input id="jumpto" type="text" placeholder="42.4746, -83.2960" spellcheck="false">
-  <p class="hint">Right-click any spot in Google Maps and choose the lat/long at the top of the menu, then paste it here. Enter to go, G or Esc to close.</p>
+  <p class="hint">Right-click a spot in Google Maps, copy the lat/long from the top of the menu, paste here. Enter to go, Esc to close.</p>
 </div>
+
+<div id="drop">Drop a GPS track to replay it</div>
 
 <div id="hud">
   <div id="speed">0<small>MPH</small></div>
@@ -116,6 +144,7 @@
   "imports": {
     "three": "https://esm.sh/three@0.169.0",
     "three/addons/": "https://esm.sh/three@0.169.0/examples/jsm/",
+    "three-mesh-bvh": "https://esm.sh/three-mesh-bvh@0.7.8?deps=three@0.169.0",
     "3d-tiles-renderer": "https://esm.sh/3d-tiles-renderer@0.4.9?deps=three@0.169.0",
     "3d-tiles-renderer/plugins": "https://esm.sh/3d-tiles-renderer@0.4.9/plugins?deps=three@0.169.0"
   }
@@ -127,6 +156,14 @@ import * as THREE from 'three';
 import { TilesRenderer } from '3d-tiles-renderer';
 import { GoogleCloudAuthPlugin, GLTFExtensionsPlugin } from '3d-tiles-renderer/plugins';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+
+// BVH acceleration. Without this every ground/collision ray brute-forces the
+// entire loaded mesh, which is far too slow to test collision every frame.
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const $ = id => document.getElementById(id);
 const showErr = m => { const e = $('err'); e.style.display='block'; e.textContent = m; };
@@ -134,10 +171,12 @@ window.addEventListener('error', e => showErr('Script error: ' + e.message));
 
 const KEYS_GROUND =
   'W / S &nbsp; throttle · brake<br>A / D &nbsp; steer<br>Space &nbsp; handbrake<br>' +
-  '[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>V &nbsp; switch to plane<br>R &nbsp; respawn';
+  'C &nbsp; camera<br>[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>' +
+  'V &nbsp; plane<br>P &nbsp; replay<br>R &nbsp; respawn';
 const KEYS_AIR =
   'W / S &nbsp; throttle<br>A / D &nbsp; roll<br>&uarr; / &darr; &nbsp; pitch<br>' +
-  '[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>V &nbsp; switch to van<br>R &nbsp; respawn';
+  'C &nbsp; camera<br>[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>' +
+  'V &nbsp; van<br>P &nbsp; replay<br>R &nbsp; respawn';
 
 $('go').addEventListener('click', () => {
   const key = $('key').value.trim();
@@ -145,11 +184,8 @@ $('go').addEventListener('click', () => {
   if (!key) return showErr('Paste an API key first — the tile server rejects anonymous requests.');
   if (!isFinite(lat) || !isFinite(lon)) return showErr('Latitude and longitude need to be numbers.');
   $('gate').style.display = 'none';
-  $('hud').style.display = 'flex';
-  $('keys').style.display = 'block';
-  $('mode').style.display = 'block';
-  $('compass').style.display = 'block';
-  start(key, lat, lon);
+  for (const id of ['hud','keys','mode','compass']) $(id).style.display = id === 'hud' ? 'flex' : 'block';
+  start(key, lat, lon, $('vanurl').value.trim(), $('planeurl').value.trim());
 });
 
 /* ---------- geodesy ---------- */
@@ -162,9 +198,7 @@ function geodeticToECEF(latRad, lonRad, h) {
   const N = A / Math.sqrt(1 - E2*sp*sp);
   return new THREE.Vector3((N+h)*cp*cl, (N+h)*cp*sl, (N*(1-E2)+h)*sp);
 }
-
-// Bowring's closed-form inverse. Accurate to well under a millimetre near the surface.
-function ecefToGeodetic(v) {
+function ecefToGeodetic(v) {                       // Bowring, closed form
   const p = Math.hypot(v.x, v.y);
   const th = Math.atan2(A * v.z, B * p);
   const lon = Math.atan2(v.y, v.x);
@@ -174,7 +208,7 @@ function ecefToGeodetic(v) {
   return { lat, lon, h: p / Math.cos(lat) - N };
 }
 
-function start(API_KEY, LAT, LON) {
+function start(API_KEY, LAT, LON, VAN_URL, PLANE_URL) {
 
   const renderer = new THREE.WebGLRenderer({ antialias:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -184,73 +218,93 @@ function start(API_KEY, LAT, LON) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9fc4df);
   scene.fog = new THREE.Fog(0x9fc4df, 420, 1500);
-
-  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 1, 1600);
+  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.6, 1600);
 
   scene.add(new THREE.AmbientLight(0xffffff, 2.4));
   const sun = new THREE.DirectionalLight(0xfff2dd, 1.4);
-  sun.position.set(-0.5, 1, 0.3);
-  scene.add(sun);
+  sun.position.set(-0.5, 1, 0.3); scene.add(sun);
 
-  /* ---------- van ---------- */
-  const van = new THREE.Group();
+  /* ---------- built-in vehicles ---------- */
+  const van = new THREE.Group(), plane = new THREE.Group();
+  let vanFlip = 0, planeFlip = 0;
+
+  const vanBuilt = new THREE.Group();
   {
     const paint = new THREE.MeshStandardMaterial({ color:0xf2f0eb, roughness:0.5, metalness:0.15 });
     const glass = new THREE.MeshStandardMaterial({ color:0x16263f, roughness:0.15, metalness:0.6 });
-    // nose points -Z, which is the direction of travel
-    const box = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.72, 3.9), paint);
-    box.position.set(0, 1.52, 0.85); van.add(box);
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.96, 1.32, 1.5), paint);
-    cab.position.set(0, 1.32, -1.42); van.add(cab);
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.66, 0.75), paint);
-    nose.position.set(0, 0.86, -2.42); van.add(nose);
-    const wind = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.02, 0.14), glass);
-    wind.position.set(0, 1.55, -2.14); wind.rotation.x = 0.34; van.add(wind);
-    for (const s of [-1, 1]) {
-      const side = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 1.15), glass);
-      side.position.set(s * 0.99, 1.58, -1.36); van.add(side);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2.0,1.72,3.9), paint);
+    box.position.set(0,1.52,0.85); vanBuilt.add(box);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.96,1.32,1.5), paint);
+    cab.position.set(0,1.32,-1.42); vanBuilt.add(cab);
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(1.86,0.66,0.75), paint);
+    nose.position.set(0,0.86,-2.42); vanBuilt.add(nose);
+    const wind = new THREE.Mesh(new THREE.BoxGeometry(1.8,1.02,0.14), glass);
+    wind.position.set(0,1.55,-2.14); wind.rotation.x = 0.34; vanBuilt.add(wind);
+    for (const s of [-1,1]) {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.62,1.15), glass);
+      side.position.set(s*0.99,1.58,-1.36); vanBuilt.add(side);
     }
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.03, 0.2, 3.9),
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.03,0.2,3.9),
       new THREE.MeshStandardMaterial({ color:0xb5512f, roughness:0.5 }));
-    stripe.position.set(0, 0.95, 0.85); van.add(stripe);
-    const wg = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 16); wg.rotateZ(Math.PI/2);
+    stripe.position.set(0,0.95,0.85); vanBuilt.add(stripe);
+    const wg = new THREE.CylinderGeometry(0.42,0.42,0.3,16); wg.rotateZ(Math.PI/2);
     const wm = new THREE.MeshStandardMaterial({ color:0x111417, roughness:0.9 });
     for (const [x,z] of [[-0.98,-1.62],[0.98,-1.62],[-0.98,1.78],[0.98,1.78]]) {
-      const w = new THREE.Mesh(wg, wm); w.position.set(x, 0.42, z); van.add(w);
+      const w = new THREE.Mesh(wg, wm); w.position.set(x,0.42,z); vanBuilt.add(w);
     }
   }
-  scene.add(van);
+  van.add(vanBuilt); scene.add(van);
 
-  /* ---------- plane ---------- */
-  const plane = new THREE.Group();
+  const planeBuilt = new THREE.Group();
   {
     const skin = new THREE.MeshStandardMaterial({ color:0xf2f0eb, roughness:0.4, metalness:0.3 });
     const trim = new THREE.MeshStandardMaterial({ color:0xb5512f, roughness:0.45 });
     const glass = new THREE.MeshStandardMaterial({ color:0x16263f, roughness:0.15, metalness:0.6 });
-    const fus = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.42, 8.4, 14), skin);
-    fus.rotation.x = Math.PI/2; plane.add(fus);
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.5, 14), skin);
-    nose.rotation.x = -Math.PI/2; nose.position.z = -4.9; plane.add(nose);
-    const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), glass);
-    canopy.scale.set(1, 0.65, 1.9); canopy.position.set(0, 0.42, -1.9); plane.add(canopy);
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(12.5, 0.22, 1.9), skin);
-    wing.position.set(0, 0.1, -0.4); plane.add(wing);
+    const fus = new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.42,8.4,14), skin);
+    fus.rotation.x = Math.PI/2; planeBuilt.add(fus);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.62,1.5,14), skin);
+    nose.rotation.x = -Math.PI/2; nose.position.z = -4.9; planeBuilt.add(nose);
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.55,12,10), glass);
+    canopy.scale.set(1,0.65,1.9); canopy.position.set(0,0.42,-1.9); planeBuilt.add(canopy);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(12.5,0.22,1.9), skin);
+    wing.position.set(0,0.1,-0.4); planeBuilt.add(wing);
     for (const s of [-1,1]) {
-      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.24, 1.9), trim);
-      tip.position.set(s * 5.8, 0.1, -0.4); plane.add(tip);
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.24,1.9), trim);
+      tip.position.set(s*5.8,0.1,-0.4); planeBuilt.add(tip);
     }
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.2, 1.1), skin);
-    tail.position.set(0, 0.15, 3.7); plane.add(tail);
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.7, 1.4), trim);
-    fin.position.set(0, 0.9, 3.9); plane.add(fin);
-    const prop = new THREE.Mesh(new THREE.BoxGeometry(0.14, 3.4, 0.1),
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(4.2,0.2,1.1), skin);
+    tail.position.set(0,0.15,3.7); planeBuilt.add(tail);
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.18,1.7,1.4), trim);
+    fin.position.set(0,0.9,3.9); planeBuilt.add(fin);
+    const prop = new THREE.Mesh(new THREE.BoxGeometry(0.14,3.4,0.1),
       new THREE.MeshStandardMaterial({ color:0x2a2f36, roughness:0.7 }));
-    prop.position.z = -5.6; plane.add(prop);
-    plane.userData.prop = prop;
+    prop.position.z = -5.6; planeBuilt.add(prop);
+    planeBuilt.userData.prop = prop;
   }
-  plane.rotation.order = 'YXZ';
-  scene.add(plane);
-  plane.visible = false;
+  plane.add(planeBuilt); plane.rotation.order = 'YXZ';
+  scene.add(plane); plane.visible = false;
+
+  /* ---------- optional glTF models ---------- */
+  function fitModel(obj, targetLen) {
+    const bb = new THREE.Box3().setFromObject(obj);
+    const size = bb.getSize(new THREE.Vector3());
+    const s = targetLen / Math.max(size.z, size.x, 0.001);
+    obj.scale.setScalar(s);
+    const bb2 = new THREE.Box3().setFromObject(obj);
+    const c = bb2.getCenter(new THREE.Vector3());
+    obj.position.set(-c.x, -bb2.min.y, -c.z);       // centred, sitting on y=0
+  }
+  if (VAN_URL || PLANE_URL) {
+    const gl = new GLTFLoader();
+    if (VAN_URL) gl.load(VAN_URL, g => {
+      vanBuilt.visible = false; fitModel(g.scene, 5.4);
+      const w = new THREE.Group(); w.add(g.scene); van.add(w); van.userData.custom = w;
+    }, undefined, e => showErr('Van model failed to load — likely a CORS block. ' + (e?.message || '')));
+    if (PLANE_URL) gl.load(PLANE_URL, g => {
+      planeBuilt.visible = false; fitModel(g.scene, 9.5);
+      const w = new THREE.Group(); w.add(g.scene); plane.add(w); plane.userData.custom = w;
+    }, undefined, e => showErr('Plane model failed to load — likely a CORS block. ' + (e?.message || '')));
+  }
 
   /* ---------- tiles ---------- */
   const draco = new DRACOLoader()
@@ -270,6 +324,27 @@ function start(API_KEY, LAT, LON) {
   tiles.lruCache.minSize = 400;
   scene.add(tiles.group);
 
+  // Build a BVH per tile as it streams in. bvhCount in the HUD is the canary:
+  // if it stays at 0, this event never fired and collision is silently dead.
+  let bvhCount = 0;
+  tiles.addEventListener('load-model', ({ scene: tileScene }) => {
+    try {
+      tileScene.traverse(o => {
+        if (o.isMesh && o.geometry && !o.geometry.boundsTree) {
+          o.geometry.computeBoundsTree({ lazyGeneration:false });
+          bvhCount++;
+        }
+      });
+    } catch (err) { console.warn('BVH build failed', err); }
+  });
+  tiles.addEventListener('dispose-model', ({ scene: tileScene }) => {
+    try {
+      tileScene.traverse(o => {
+        if (o.isMesh && o.geometry?.boundsTree) { o.geometry.disposeBoundsTree(); bvhCount--; }
+      });
+    } catch (err) { /* geometry already gone */ }
+  });
+
   let errCount = 0, lastErr = 0;
   tiles.addEventListener('load-error', e => {
     errCount++;
@@ -287,12 +362,8 @@ function start(API_KEY, LAT, LON) {
     showErr(msg + '   [' + errCount + ' failed]  Console has the full object.');
   });
 
-  /* ---------- origin frame + rebasing ----------
-     The scene origin is placed at a lat/lon on the ellipsoid with Y up. Everything
-     is expressed relative to it, which keeps coordinates small enough for float32.
-     Fly far enough and that stops being true, so we re-anchor under the aircraft. */
+  /* ---------- origin frame + rebasing ---------- */
   let originECEF, east, north, up;
-
   function setOrigin(latRad, lonRad) {
     const sp = Math.sin(latRad), cp = Math.cos(latRad);
     const sl = Math.sin(lonRad), cl = Math.cos(lonRad);
@@ -300,29 +371,172 @@ function start(API_KEY, LAT, LON) {
     east  = new THREE.Vector3(-sl, cl, 0);
     north = new THREE.Vector3(-sp*cl, -sp*sl, cp);
     up    = new THREE.Vector3(cp*cl, cp*sl, sp);
-
     const M = new THREE.Matrix4().makeBasis(east, north, up).setPosition(originECEF).invert();
-    const R = new THREE.Matrix4().set(1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1); // E,N,U -> x,y,-z
+    const R = new THREE.Matrix4().set(1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1);
     tiles.group.matrixAutoUpdate = false;
     tiles.group.matrix.multiplyMatrices(R, M);
     tiles.group.matrixWorldNeedsUpdate = true;
   }
   setOrigin(LAT*Math.PI/180, LON*Math.PI/180);
 
-  const REBASE_AT = 4000;   // metres from origin before we re-anchor
-  let rebases = 0;
+  // lat/lon -> local scene metres, using the current origin frame
+  const _tmp = new THREE.Vector3();
+  function geodeticToLocal(latDeg, lonDeg, h, target) {
+    _tmp.copy(geodeticToECEF(latDeg*Math.PI/180, lonDeg*Math.PI/180, h || 0)).sub(originECEF);
+    return target.set(_tmp.dot(east), _tmp.dot(up), -_tmp.dot(north));
+  }
 
+  const REBASE_AT = 4000;
+  let rebases = 0;
   function maybeRebase() {
     if (Math.hypot(pos.x, pos.z) < REBASE_AT) return;
-    // local (x, y, -z) -> ENU -> ECEF -> geodetic, then rebuild the frame there
     const ecef = originECEF.clone()
-      .addScaledVector(east,   pos.x)
-      .addScaledVector(north, -pos.z)
-      .addScaledVector(up,     pos.y);
+      .addScaledVector(east, pos.x).addScaledVector(north, -pos.z).addScaledVector(up, pos.y);
     const g = ecefToGeodetic(ecef);
     setOrigin(g.lat, g.lon);
-    pos.set(0, g.h, 0);       // same physical point, new local coordinates
+    pos.set(0, g.h, 0);
     rebases++;
+    if (track.length) buildTrackLine();      // path is stored in lat/lon, so re-project it
+  }
+
+  /* ---------- state ---------- */
+  let mode = 'ground', view = 0;             // view: 0 chase, 1 hood, 2 cockpit
+  const VIEW_NAMES = ['chase','hood','cockpit'];
+  const pos = new THREE.Vector3(0, 300, 0);
+  let speed = 0, heading = 0, grounded = false;
+  let pitch = 0, roll = 0, yaw = 0, airspeed = 70;
+  let blocked = false, bumps = 0;
+
+  function respawn() {
+    pos.set(0, mode === 'air' ? 400 : 300, 0);
+    speed = 0; heading = 0; grounded = false;
+    pitch = 0; roll = 0; yaw = 0; airspeed = 70;
+  }
+
+  function setMode(m) {
+    mode = m;
+    van.visible   = m === 'ground' && !replay.on;
+    plane.visible = m === 'air' && !replay.on;
+    $('mode').textContent = (replay.on ? 'Replay · ' : '') + (m === 'air' ? 'Air' : 'Ground');
+    $('keys').innerHTML = m === 'air' ? KEYS_AIR : KEYS_GROUND;
+    if (m === 'air') {
+      camera.far = 14000; scene.fog.near = 2600; scene.fog.far = 13000;
+      yaw = heading; pitch = 0.06; roll = 0; airspeed = 78;
+      pos.y = Math.max(pos.y + 260, 300);
+    } else {
+      camera.far = 1600; scene.fog.near = 420; scene.fog.far = 1500;
+      heading = yaw; speed = 0; grounded = false;
+    }
+    camera.updateProjectionMatrix();
+    tiles.setResolutionFromRenderer(camera, renderer);
+  }
+  setMode('ground');
+
+  /* ---------- raycasting: ground + collision ---------- */
+  const ray = new THREE.Raycaster();
+  ray.firstHitOnly = true;
+  const DOWN = new THREE.Vector3(0,-1,0);
+  const fwd = new THREE.Vector3(), probe = new THREE.Vector3();
+
+  function groundHeight(x, z) {
+    ray.set(probe.set(x, pos.y + 500, z), DOWN);
+    ray.far = 4000;
+    const hit = ray.intersectObject(tiles.group, true)[0];
+    return hit ? hit.point.y : null;
+  }
+
+  // Cast forward at windshield height. Curbs and driveway lips pass under it;
+  // walls don't. Photogrammetry has no separate collision geometry, so this
+  // height threshold is the only thing distinguishing "drivable" from "wall".
+  function forwardBlocked(dir, dist, heightAboveGround) {
+    ray.set(probe.copy(pos).setY(pos.y + heightAboveGround), dir);
+    ray.far = dist;
+    return ray.intersectObject(tiles.group, true).length > 0;
+  }
+
+  /* ---------- GPS track replay ---------- */
+  const track = [];                 // { lat, lon, t, speed }
+  const replay = { on:false, playing:false, t:0, rate:1 };
+  let trackLine = null;
+  const trackPos = new THREE.Vector3(), trackNext = new THREE.Vector3();
+
+  function buildTrackLine() {
+    if (trackLine) { scene.remove(trackLine); trackLine.geometry.dispose(); }
+    if (!track.length) return;
+    const pts = track.map(p => geodeticToLocal(p.lat, p.lon, 0, new THREE.Vector3()));
+    // lift the line clear of the mesh so it reads as a ribbon over the ground
+    pts.forEach(p => { const g = groundHeight(p.x, p.z); p.y = (g === null ? p.y : g) + 2.2; });
+    trackLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color:0xb5512f }));
+    scene.add(trackLine);
+  }
+
+  function loadTrack(text, name) {
+    let raw;
+    try { raw = JSON.parse(text); }
+    catch { return showErr('Could not parse ' + name + ' — expected JSON.'); }
+    const arr = Array.isArray(raw) ? raw : (raw.positions || raw.data || raw.items || []);
+    track.length = 0;
+    for (const p of arr) {
+      const lat = p.latitude ?? p.lat ?? p.y;
+      const lon = p.longitude ?? p.lon ?? p.lng ?? p.x;
+      if (!isFinite(lat) || !isFinite(lon)) continue;
+      const ts = p.deviceTime || p.fixTime || p.serverTime || p.time || p.timestamp;
+      track.push({ lat, lon, t: ts ? Date.parse(ts) : track.length * 1000,
+                   speed: (p.speed ?? 0) * 0.514444 });     // Traccar reports knots
+    }
+    if (track.length < 2) return showErr('Found ' + track.length + ' usable points in ' + name +
+      ' — need latitude/longitude fields on each entry.');
+    track.sort((a,b) => a.t - b.t);
+    setOrigin(track[0].lat*Math.PI/180, track[0].lon*Math.PI/180);
+    pos.set(0, 300, 0);
+    buildTrackLine();
+    replay.on = true; replay.playing = true; replay.t = track[0].t;
+    $('replay').style.display = 'block';
+    setMode(mode);
+    showErr('Loaded ' + track.length + ' points from ' + name + ' — P pauses, R jumps to the start.');
+    setTimeout(() => $('err').style.display = 'none', 5000);
+  }
+
+  const dropEl = $('drop');
+  addEventListener('dragover', e => { e.preventDefault(); dropEl.style.display = 'flex'; });
+  addEventListener('dragleave', e => { if (e.relatedTarget === null) dropEl.style.display = 'none'; });
+  addEventListener('drop', e => {
+    e.preventDefault(); dropEl.style.display = 'none';
+    const f = e.dataTransfer?.files?.[0];
+    if (!f) return;
+    f.text().then(t => loadTrack(t, f.name));
+  });
+
+  function stepReplay(dt) {
+    const last = track[track.length-1];
+    if (replay.playing) replay.t += dt * 1000 * replay.rate;
+    if (replay.t > last.t) { replay.t = track[0].t; }
+
+    let i = 0;
+    while (i < track.length-2 && track[i+1].t < replay.t) i++;
+    const a = track[i], b = track[i+1];
+    const span = Math.max(1, b.t - a.t);
+    const f = THREE.MathUtils.clamp((replay.t - a.t) / span, 0, 1);
+
+    geodeticToLocal(a.lat, a.lon, 0, trackPos);
+    geodeticToLocal(b.lat, b.lon, 0, trackNext);
+    pos.lerpVectors(trackPos, trackNext, f);
+
+    const dx = trackNext.x - trackPos.x, dz = trackNext.z - trackPos.z;
+    if (Math.hypot(dx, dz) > 0.05) heading = Math.atan2(-dx, -dz);
+
+    const gh = groundHeight(pos.x, pos.z);
+    if (gh !== null) { pos.y = gh; grounded = true; } else grounded = false;
+
+    speed = THREE.MathUtils.lerp(a.speed, b.speed, f);
+
+    const el = $('bar').firstElementChild;
+    el.style.width = ((replay.t - track[0].t) / (last.t - track[0].t) * 100).toFixed(1) + '%';
+    $('rtime').textContent = new Date(replay.t).toLocaleString();
+    $('rinfo').innerHTML = '<b>' + Math.round(speed*2.2369) + ' mph</b> · point ' +
+      (i+1) + ' of ' + track.length + (replay.playing ? '' : ' · paused');
   }
 
   /* ---------- input ---------- */
@@ -333,22 +547,21 @@ function start(API_KEY, LAT, LON) {
   function toggleJump(open) {
     jumpOpen = open;
     jumpBox.style.display = open ? 'block' : 'none';
-    if (open) { jumpIn.value = ''; jumpIn.focus(); } else { jumpIn.blur(); }
-    for (const k in keys) keys[k] = false;   // drop stuck keys
+    if (open) { jumpIn.value=''; jumpIn.focus(); } else jumpIn.blur();
+    for (const k in keys) keys[k] = false;
   }
-
   jumpIn.addEventListener('keydown', e => {
     e.stopPropagation();
-    if (e.code === 'Escape' || e.code === 'KeyG' && e.ctrlKey) return toggleJump(false);
+    if (e.code === 'Escape') return toggleJump(false);
     if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
-    const parts = jumpIn.value.split(/[,\s]+/).map(parseFloat).filter(isFinite);
-    if (parts.length < 2 || Math.abs(parts[0]) > 90 || Math.abs(parts[1]) > 180) {
-      jumpIn.value = ''; jumpIn.placeholder = 'Need "latitude, longitude" — e.g. 42.4746, -83.2960';
-      return;
+    const p = jumpIn.value.split(/[,\s]+/).map(parseFloat).filter(isFinite);
+    if (p.length < 2 || Math.abs(p[0]) > 90 || Math.abs(p[1]) > 180) {
+      jumpIn.value=''; jumpIn.placeholder='Need "latitude, longitude" — e.g. 42.4746, -83.2960'; return;
     }
-    setOrigin(parts[0]*Math.PI/180, parts[1]*Math.PI/180);
+    setOrigin(p[0]*Math.PI/180, p[1]*Math.PI/180);
     pos.set(0, mode === 'air' ? 500 : 300, 0);
     grounded = false;
+    if (track.length) buildTrackLine();
     toggleJump(false);
   });
 
@@ -357,59 +570,22 @@ function start(API_KEY, LAT, LON) {
     if (e.code === 'KeyG') { e.preventDefault(); return toggleJump(true); }
     keys[e.code] = true;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-    if (e.code === 'KeyR') respawn();
+    if (e.code === 'KeyR') { if (replay.on) replay.t = track[0].t; else respawn(); }
     if (e.code === 'KeyV') setMode(mode === 'ground' ? 'air' : 'ground');
-    if (e.code === 'BracketLeft')  { errorTarget = Math.min(160, errorTarget * 1.35); }
-    if (e.code === 'BracketRight') { errorTarget = Math.max(8,   errorTarget / 1.35); }
+    if (e.code === 'KeyC') { view = (view + 1) % 3; }
+    if (e.code === 'KeyK') {
+      if (mode === 'ground' && van.userData.custom)  { vanFlip ^= 1;   van.userData.custom.rotation.y = vanFlip*Math.PI; }
+      if (mode === 'air'    && plane.userData.custom){ planeFlip ^= 1; plane.userData.custom.rotation.y = planeFlip*Math.PI; }
+    }
+    if (e.code === 'KeyP' && track.length) {
+      if (!replay.on) { replay.on = true; replay.playing = true; $('replay').style.display='block'; setMode(mode); }
+      else replay.playing = !replay.playing;
+    }
+    if (e.code === 'BracketLeft')  errorTarget = Math.min(160, errorTarget * 1.35);
+    if (e.code === 'BracketRight') errorTarget = Math.max(8,   errorTarget / 1.35);
   });
   addEventListener('keyup', e => keys[e.code] = false);
   const held = (...c) => c.some(k => keys[k]);
-
-  /* ---------- state ---------- */
-  let mode = 'ground';
-  const pos = new THREE.Vector3(0, 300, 0);
-  let speed = 0, heading = 0, grounded = false;
-  let pitch = 0, roll = 0, yaw = 0, airspeed = 70;
-
-  function respawn() {
-    pos.set(0, mode === 'air' ? 400 : 300, 0);
-    speed = 0; heading = 0; grounded = false;
-    pitch = 0; roll = 0; yaw = 0; airspeed = 70;
-  }
-
-  function setMode(m) {
-    mode = m;
-    van.visible   = m === 'ground';
-    plane.visible = m === 'air';
-    $('mode').textContent = m === 'air' ? 'Air' : 'Ground';
-    $('keys').innerHTML = m === 'air' ? KEYS_AIR : KEYS_GROUND;
-
-    if (m === 'air') {
-      camera.far = 14000;
-      scene.fog.near = 2600; scene.fog.far = 13000;
-      yaw = heading; pitch = 0.06; roll = 0; airspeed = 78;
-      pos.y = Math.max(pos.y + 260, 300);
-    } else {
-      camera.far = 1600;
-      scene.fog.near = 420; scene.fog.far = 1500;
-      heading = yaw; speed = 0; grounded = false;
-    }
-    camera.updateProjectionMatrix();
-    tiles.setResolutionFromRenderer(camera, renderer);
-  }
-  setMode('ground');
-
-  const ray = new THREE.Raycaster();
-  ray.firstHitOnly = true;
-  const DOWN = new THREE.Vector3(0,-1,0);
-  const fwd = new THREE.Vector3();
-
-  function groundHeight() {
-    ray.set(new THREE.Vector3(pos.x, pos.y + 500, pos.z), DOWN);
-    ray.far = 4000;
-    const hit = ray.intersectObject(tiles.group, true)[0];
-    return hit ? hit.point.y : null;
-  }
 
   /* ---------- hud ---------- */
   const stream = $('stream');
@@ -420,119 +596,149 @@ function start(API_KEY, LAT, LON) {
   function updateHud(dt) {
     hudT += dt; if (hudT < 0.12) return; hudT = 0;
 
-    // local -Z is true north; +Y rotation turns west, so bearing runs the other way
     const rad = mode === 'air' ? yaw : heading;
     const brg = ((-rad * 180/Math.PI) % 360 + 360) % 360;
     const card = ['N','NE','E','SE','S','SW','W','NW'][Math.round(brg/45) % 8];
     $('compass').innerHTML = card + ' <span>' + String(Math.round(brg)).padStart(3,'0') + '&deg;</span>';
 
-    if (mode === 'air') {
-      $('speed').innerHTML = Math.round(airspeed * 1.9438) + '<small>KTS</small>';
-    } else {
-      $('speed').innerHTML = Math.round(Math.abs(speed) * 2.2369) + '<small>MPH</small>';
-    }
+    $('speed').innerHTML = mode === 'air'
+      ? Math.round(airspeed * 1.9438) + '<small>KTS</small>'
+      : Math.round(Math.abs(speed) * 2.2369) + '<small>MPH</small>';
 
     const s = tiles.stats || {};
-    const loading = (s.downloading || 0) + (s.parsing || 0);
-    const filled = Math.min(14, Math.round(loading / 5));
-    pips.forEach((p,i) => { p.className = i < filled ? (loading > 60 ? 'over' : 'on') : ''; });
+    const loading = (s.downloading||0) + (s.parsing||0);
+    const filled = Math.min(14, Math.round(loading/5));
+    pips.forEach((p,i) => p.className = i < filled ? (loading > 60 ? 'over' : 'on') : '');
 
-    const detail = 'detail ' + Math.round(tiles.errorTarget) +
-      (mode === 'air' ? ' (auto-raised with altitude)' : '') + ' · [ coarser · ] finer';
-    if (loading > 60)      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> queued — past your quota rate. Press [ to back off. <span style="opacity:.6">' + detail + '</span>';
-    else if (loading > 0)  $('tiles').innerHTML = '<b>' + loading + ' tiles</b> streaming in. <span style="opacity:.6">' + detail + '</span>';
-    else                   $('tiles').innerHTML = 'Tile stream idle — everything in view is loaded. <span style="opacity:.6">' + detail + '</span>';
+    const detail = 'detail ' + Math.round(tiles.errorTarget) + ' · ' + bvhCount + ' BVH · ' + VIEW_NAMES[view];
+    if (loading > 60)     $('tiles').innerHTML = '<b>'+loading+' tiles</b> queued — past your quota rate. Press [ to back off. <span style="opacity:.6">'+detail+'</span>';
+    else if (loading > 0) $('tiles').innerHTML = '<b>'+loading+' tiles</b> streaming in. <span style="opacity:.6">'+detail+'</span>';
+    else                  $('tiles').innerHTML = 'Tile stream idle — everything in view is loaded. <span style="opacity:.6">'+detail+'</span>';
 
-    if (mode === 'air') {
-      $('ground').innerHTML = '<b>' + Math.round(agl * 3.2808) + ' ft</b> above ground · ' +
-        (rebases ? rebases + ' origin rebase' + (rebases>1?'s':'') + ' — coordinates re-anchored under you to hold precision'
+    if (replay.on) {
+      $('ground').innerHTML = 'Following a recorded track — steering is disabled. <b>V</b> switches the chase between ground and air framing.';
+    } else if (mode === 'air') {
+      $('ground').innerHTML = '<b>'+Math.round(agl*3.2808)+' ft</b> above ground · ' +
+        (rebases ? rebases+' origin rebase'+(rebases>1?'s':'')+' — coordinates re-anchored to hold precision'
                  : 'origin anchored at spawn; re-anchors every 4 km');
     } else {
-      $('ground').innerHTML = grounded
-        ? 'Ground: <b>locked</b> to mesh. No wall collision — buildings are photogrammetry, not solid.'
-        : 'Ground: <b>no mesh under you yet.</b> Falling until tiles arrive.';
+      $('ground').innerHTML = (grounded
+        ? 'Ground: <b>locked</b> to mesh.'
+        : 'Ground: <b>no mesh under you yet.</b> Falling until tiles arrive.') +
+        (bvhCount === 0 ? ' <i>Collision off — no BVH built yet.</i>'
+                        : (blocked ? ' <i>Blocked by geometry.</i>' : ' Walls are solid; curbs are not.')) +
+        (bumps ? ' <span style="opacity:.6">'+bumps+' hits</span>' : '');
     }
   }
 
   /* ---------- loop ---------- */
   const clock = new THREE.Clock();
   const camTarget = new THREE.Vector3(), camLook = new THREE.Vector3();
+  const dir = new THREE.Vector3();
 
   function tick() {
     requestAnimationFrame(tick);
     const dt = Math.min(clock.getDelta(), 0.05);
 
-    if (mode === 'ground') {
-      if (held('KeyW','ArrowUp'))        speed += 13 * dt;
-      else if (held('KeyS','ArrowDown')) speed -= 17 * dt;
-      else                               speed *= (1 - 0.7 * dt);
-      if (held('Space'))                 speed *= (1 - 3.2 * dt);
+    if (replay.on) {
+      stepReplay(dt);
+      van.visible = mode === 'ground'; plane.visible = false;
+      van.position.copy(pos); van.rotation.y = heading;
+      maybeRebase();
+      if (mode === 'air') {
+        camTarget.set(pos.x + Math.sin(heading)*90, pos.y + 150, pos.z + Math.cos(heading)*90);
+        camLook.set(pos.x, pos.y, pos.z);
+      } else {
+        camTarget.set(pos.x + Math.sin(heading)*14, pos.y + 6.4, pos.z + Math.cos(heading)*14);
+        camLook.set(pos.x, pos.y + 2.0, pos.z);
+      }
+      tiles.errorTarget = errorTarget;
+
+    } else if (mode === 'ground') {
+      if (held('KeyW','ArrowUp'))        speed += 13*dt;
+      else if (held('KeyS','ArrowDown')) speed -= 17*dt;
+      else                               speed *= (1 - 0.7*dt);
+      if (held('Space'))                 speed *= (1 - 3.2*dt);
       speed = THREE.MathUtils.clamp(speed, -9, 34);
 
-      const grip = Math.min(1, Math.abs(speed) / 5.5);
+      const grip = Math.min(1, Math.abs(speed)/5.5);
       const rate = 1.6 * grip * Math.sign(speed || 1);
-      if (held('KeyA','ArrowLeft'))  heading += rate * dt;
-      if (held('KeyD','ArrowRight')) heading -= rate * dt;
+      if (held('KeyA','ArrowLeft'))  heading += rate*dt;
+      if (held('KeyD','ArrowRight')) heading -= rate*dt;
 
-      pos.x -= Math.sin(heading) * speed * dt;
-      pos.z -= Math.cos(heading) * speed * dt;
+      dir.set(-Math.sin(heading), 0, -Math.cos(heading)).multiplyScalar(Math.sign(speed) || 1);
+      const stopDist = Math.abs(speed)*dt + 2.6;
+      blocked = bvhCount > 0 && Math.abs(speed) > 0.4 && forwardBlocked(dir, stopDist, 1.35);
+      if (blocked) {
+        if (Math.abs(speed) > 6) bumps++;
+        speed *= -0.18;                       // small bounce, keeps you off the wall
+      } else {
+        pos.x -= Math.sin(heading)*speed*dt;
+        pos.z -= Math.cos(heading)*speed*dt;
+      }
 
-      const gh = groundHeight();
+      const gh = groundHeight(pos.x, pos.z);
       if (gh !== null) {
         pos.y = grounded ? THREE.MathUtils.lerp(pos.y, gh, 1 - Math.pow(0.001, dt)) : gh;
         grounded = true;
-      } else {
-        pos.y -= 60 * dt;
-        grounded = false;
-      }
+      } else { pos.y -= 60*dt; grounded = false; }
 
-      van.position.copy(pos);
-      van.rotation.y = heading;
+      maybeRebase();
+      van.position.copy(pos); van.rotation.y = heading;
       tiles.errorTarget = errorTarget;
 
-      camTarget.set(pos.x + Math.sin(heading)*14, pos.y + 6.4, pos.z + Math.cos(heading)*14);
-      camLook.set(pos.x, pos.y + 2.0, pos.z);
+      if (view === 0) {
+        camTarget.set(pos.x + Math.sin(heading)*14, pos.y + 6.4, pos.z + Math.cos(heading)*14);
+        camLook.set(pos.x, pos.y + 2.0, pos.z);
+      } else if (view === 1) {
+        camTarget.set(pos.x - Math.sin(heading)*2.6, pos.y + 2.4, pos.z - Math.cos(heading)*2.6);
+        camLook.set(pos.x - Math.sin(heading)*22, pos.y + 2.2, pos.z - Math.cos(heading)*22);
+      } else {
+        camTarget.set(pos.x - Math.sin(heading)*0.6, pos.y + 1.85, pos.z - Math.cos(heading)*0.6);
+        camLook.set(pos.x - Math.sin(heading)*22, pos.y + 1.7, pos.z - Math.cos(heading)*22);
+      }
 
     } else {
-      if (held('KeyW'))      airspeed += 24 * dt;
-      else if (held('KeyS')) airspeed -= 24 * dt;
+      if (held('KeyW'))      airspeed += 24*dt;
+      else if (held('KeyS')) airspeed -= 24*dt;
       airspeed = THREE.MathUtils.clamp(airspeed, 34, 165);
 
-      if (held('ArrowUp'))    pitch -= 0.85 * dt;
-      if (held('ArrowDown'))  pitch += 0.85 * dt;
-      if (held('KeyA'))       roll  += 1.5 * dt;
-      if (held('KeyD'))       roll  -= 1.5 * dt;
-      if (!held('KeyA','KeyD')) roll *= (1 - 1.1 * dt);          // wings self-level
+      if (held('ArrowUp'))   pitch -= 0.85*dt;
+      if (held('ArrowDown')) pitch += 0.85*dt;
+      if (held('KeyA'))      roll  += 1.5*dt;
+      if (held('KeyD'))      roll  -= 1.5*dt;
+      if (!held('KeyA','KeyD')) roll *= (1 - 1.1*dt);
       pitch = THREE.MathUtils.clamp(pitch, -0.85, 0.85);
       roll  = THREE.MathUtils.clamp(roll,  -1.15, 1.15);
 
-      // banked turn: bank angle drives yaw rate, as in a real coordinated turn
-      yaw += Math.tan(roll) * 9.81 / Math.max(airspeed, 30) * dt;
+      yaw += Math.tan(roll) * 9.81 / Math.max(airspeed,30) * dt;
 
       plane.rotation.set(pitch, yaw, roll);
-      plane.getWorldDirection(fwd).negate();   // getWorldDirection gives +Z; the nose is -Z
-      pos.addScaledVector(fwd, airspeed * dt);
+      plane.getWorldDirection(fwd).negate();
+      pos.addScaledVector(fwd, airspeed*dt);
+      airspeed += Math.sin(pitch) * 27 * dt;
 
-      // trade altitude for speed the way a real airframe does
-      airspeed += Math.sin(pitch) * 9.0 * dt * 3;
-
-      const gh = groundHeight();
+      const gh = groundHeight(pos.x, pos.z);
       agl = gh === null ? pos.y : pos.y - gh;
-      if (gh !== null && agl < 3) { pos.y = gh + 300; pitch = 0; roll = 0; airspeed = 78; }
+      if (gh !== null && agl < 3) { pos.y = gh + 300; pitch = 0; roll = 0; airspeed = 78; bumps++; }
 
       maybeRebase();
       plane.position.copy(pos);
-      plane.userData.prop.rotation.z += airspeed * dt * 1.4;
+      if (planeBuilt.userData.prop) planeBuilt.userData.prop.rotation.z += airspeed*dt*1.4;
+      tiles.errorTarget = errorTarget * (1 + Math.max(0, agl)/260);
 
-      // more altitude means more ground in frame, so coarsen to protect the quota
-      tiles.errorTarget = errorTarget * (1 + Math.max(0, agl) / 260);
-
-      camTarget.copy(pos).addScaledVector(fwd, -26);
-      camTarget.y += 8;
-      camLook.copy(pos).addScaledVector(fwd, 12);
+      if (view === 0) {
+        camTarget.copy(pos).addScaledVector(fwd, -26); camTarget.y += 8;
+        camLook.copy(pos).addScaledVector(fwd, 12);
+      } else {
+        camTarget.copy(pos).addScaledVector(fwd, view === 1 ? -7 : -1.2);
+        camTarget.y += view === 1 ? 2.6 : 0.9;
+        camLook.copy(pos).addScaledVector(fwd, 40);
+      }
     }
 
-    camera.position.lerp(camTarget, 1 - Math.pow(mode === 'air' ? 0.004 : 0.0015, dt));
+    const lag = (view === 0 && !replay.on) ? (mode === 'air' ? 0.004 : 0.0015) : 0.00000001;
+    camera.position.lerp(camTarget, 1 - Math.pow(lag, dt));
     camera.lookAt(camLook);
     camera.updateMatrixWorld();
 
