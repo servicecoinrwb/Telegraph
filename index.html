@@ -430,7 +430,6 @@ function start(API_KEY, LAT, LON, VAN_URL, PLANE_URL) {
     camera.updateProjectionMatrix();
     tiles.setResolutionFromRenderer(camera, renderer);
   }
-  setMode('ground');
 
   /* ---------- raycasting: ground + collision ---------- */
   const ray = new THREE.Raycaster();
@@ -635,6 +634,8 @@ function start(API_KEY, LAT, LON, VAN_URL, PLANE_URL) {
   const clock = new THREE.Clock();
   const camTarget = new THREE.Vector3(), camLook = new THREE.Vector3();
   const dir = new THREE.Vector3();
+
+  setMode('ground');   // must run after `replay` and `track` exist — it reads both
 
   function tick() {
     requestAnimationFrame(tick);
