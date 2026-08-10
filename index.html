@@ -97,6 +97,7 @@
   W / S &nbsp; throttle · brake<br>
   A / D &nbsp; steer<br>
   Space &nbsp; handbrake<br>
+  [ / ] &nbsp; detail<br>
   R &nbsp; respawn
 </div>
 
@@ -144,9 +145,9 @@ function start(API_KEY, LAT, LON) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9fc4df);
-  scene.fog = new THREE.Fog(0x9fc4df, 900, 2600);
+  scene.fog = new THREE.Fog(0x9fc4df, 420, 1500);
 
-  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 1, 8000);
+  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 1, 1600);
   camera.position.set(0, 12, 24);
 
   scene.add(new THREE.AmbientLight(0xffffff, 2.4));
@@ -182,11 +183,32 @@ function start(API_KEY, LAT, LON) {
   tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: draco }));
   tiles.setCamera(camera);
   tiles.setResolutionFromRenderer(camera, renderer);
-  tiles.errorTarget = 18;                 // higher = fewer, coarser tiles = faster streaming
+  // Demand control. These four lines are the difference between 400 tiles in
+  // flight and 30. errorTarget is screen-space pixel error: higher = coarser.
+  let errorTarget = 40;
+  tiles.errorTarget = errorTarget;
+  tiles.downloadQueue.maxJobs = 6;        // concurrent HTTP requests
+  tiles.parseQueue.maxJobs = 2;           // Draco decode is CPU-bound
+  tiles.lruCache.maxSize = 500;           // keep recent tiles instead of refetching
+  tiles.lruCache.minSize = 350;
   scene.add(tiles.group);
 
+  let errCount = 0, lastErr = 0;
   tiles.addEventListener('load-error', e => {
-    showErr('Tile request failed (' + (e.message || 'check the key, its referrer restrictions, and that Map Tiles API is enabled') + ')');
+    errCount++;
+    const now = performance.now();
+    if (now - lastErr < 2000) return;     // don't spam on a burst
+    lastErr = now;
+    const status = e.error?.status ?? e.status;
+    let msg;
+    if (status === 429 || status === 403) {
+      msg = 'Throttled by quota (' + status + '). You are asking for tiles faster than your per-minute cap allows — press [ to lower detail, or raise the renderer per-minute quota.';
+    } else if (status) {
+      msg = 'Tile request failed with HTTP ' + status + '.';
+    } else {
+      msg = 'Tile request failed — check the key, its referrer restrictions, and that Map Tiles API is enabled.';
+    }
+    showErr(msg + '  (' + errCount + ' failed so far)');
   });
 
   /* ---------- rebase the globe so our spawn point is the origin, Y up ----------
@@ -216,6 +238,8 @@ function start(API_KEY, LAT, LON) {
     keys[e.code] = true;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
     if (e.code === 'KeyR') respawn();
+    if (e.code === 'BracketLeft')  { errorTarget = Math.min(160, errorTarget * 1.4); tiles.errorTarget = errorTarget; }
+    if (e.code === 'BracketRight') { errorTarget = Math.max(8, errorTarget / 1.4);   tiles.errorTarget = errorTarget; }
   });
   addEventListener('keyup', e => keys[e.code] = false);
   const held = (...c) => c.some(k => keys[k]);
@@ -242,16 +266,18 @@ function start(API_KEY, LAT, LON) {
 
     const s = tiles.stats || {};
     const loading = (s.downloading || 0) + (s.parsing || 0);
+    const filled = Math.min(14, Math.round(loading / 5));
     pips.forEach((p,i) => {
-      p.className = i < loading ? (loading > 9 ? 'over' : 'on') : '';
+      p.className = i < filled ? (loading > 60 ? 'over' : 'on') : '';
     });
 
-    if (loading > 9) {
-      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> in flight — you\'re ahead of the stream. Ease off and the mesh catches up.';
+    const detail = 'detail ' + Math.round(errorTarget) + ' · [ coarser · ] finer';
+    if (loading > 60) {
+      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> queued — well past your quota rate. Press [ to back off. <span style="opacity:.6">' + detail + '</span>';
     } else if (loading > 0) {
-      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> streaming in.';
+      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> streaming in. <span style="opacity:.6">' + detail + '</span>';
     } else {
-      $('tiles').textContent = 'Tile stream idle — everything in view is loaded.';
+      $('tiles').innerHTML = 'Tile stream idle — everything in view is loaded. <span style="opacity:.6">' + detail + '</span>';
     }
 
     $('ground').innerHTML = grounded
