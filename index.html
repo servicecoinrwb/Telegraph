@@ -182,24 +182,25 @@ function start(API_KEY, LAT, LON) {
   {
     const paint = new THREE.MeshStandardMaterial({ color:0xf2f0eb, roughness:0.5, metalness:0.15 });
     const glass = new THREE.MeshStandardMaterial({ color:0x16263f, roughness:0.15, metalness:0.6 });
+    // nose points -Z, which is the direction of travel
     const box = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.72, 3.9), paint);
-    box.position.set(0, 1.52, -0.85); van.add(box);
+    box.position.set(0, 1.52, 0.85); van.add(box);
     const cab = new THREE.Mesh(new THREE.BoxGeometry(1.96, 1.32, 1.5), paint);
-    cab.position.set(0, 1.32, 1.42); van.add(cab);
+    cab.position.set(0, 1.32, -1.42); van.add(cab);
     const nose = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.66, 0.75), paint);
-    nose.position.set(0, 0.86, 2.42); van.add(nose);
+    nose.position.set(0, 0.86, -2.42); van.add(nose);
     const wind = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.02, 0.14), glass);
-    wind.position.set(0, 1.55, 2.14); wind.rotation.x = -0.34; van.add(wind);
+    wind.position.set(0, 1.55, -2.14); wind.rotation.x = 0.34; van.add(wind);
     for (const s of [-1, 1]) {
       const side = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 1.15), glass);
-      side.position.set(s * 0.99, 1.58, 1.36); van.add(side);
+      side.position.set(s * 0.99, 1.58, -1.36); van.add(side);
     }
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.03, 0.2, 3.9),
       new THREE.MeshStandardMaterial({ color:0xb5512f, roughness:0.5 }));
-    stripe.position.set(0, 0.95, -0.85); van.add(stripe);
+    stripe.position.set(0, 0.95, 0.85); van.add(stripe);
     const wg = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 16); wg.rotateZ(Math.PI/2);
     const wm = new THREE.MeshStandardMaterial({ color:0x111417, roughness:0.9 });
-    for (const [x,z] of [[-0.98,1.62],[0.98,1.62],[-0.98,-1.78],[0.98,-1.78]]) {
+    for (const [x,z] of [[-0.98,-1.62],[0.98,-1.62],[-0.98,1.78],[0.98,1.78]]) {
       const w = new THREE.Mesh(wg, wm); w.position.set(x, 0.42, z); van.add(w);
     }
   }
