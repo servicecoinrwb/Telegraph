@@ -54,6 +54,13 @@
     font-size:12px; line-height:1.6; display:none; }
   #mode { position:fixed; top:16px; left:18px; z-index:20; display:none; font-size:11px;
     letter-spacing:0.22em; text-transform:uppercase; color:var(--sky); text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+  #compass { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:20; display:none;
+    font-size:20px; letter-spacing:0.14em; color:var(--cream); text-shadow:0 1px 4px rgba(0,0,0,0.95);
+    font-variant-numeric:tabular-nums; }
+  #compass span { font-size:12px; color:var(--dim); margin-left:8px; letter-spacing:0.1em; }
+  #jump { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:25; display:none;
+    width:min(420px,90vw); padding:22px; background:rgba(10,18,30,0.94);
+    border:1px solid rgba(111,183,227,0.3); }
 </style>
 </head>
 <body>
@@ -86,6 +93,13 @@
 </div>
 
 <div id="mode">Ground</div>
+<div id="compass">N <span>000&deg;</span></div>
+
+<div id="jump">
+  <label for="jumpto">Jump to coordinates</label>
+  <input id="jumpto" type="text" placeholder="42.4746, -83.2960" spellcheck="false">
+  <p class="hint">Right-click any spot in Google Maps and choose the lat/long at the top of the menu, then paste it here. Enter to go, G or Esc to close.</p>
+</div>
 
 <div id="hud">
   <div id="speed">0<small>MPH</small></div>
@@ -120,10 +134,10 @@ window.addEventListener('error', e => showErr('Script error: ' + e.message));
 
 const KEYS_GROUND =
   'W / S &nbsp; throttle · brake<br>A / D &nbsp; steer<br>Space &nbsp; handbrake<br>' +
-  '[ / ] &nbsp; detail<br>V &nbsp; switch to plane<br>R &nbsp; respawn';
+  '[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>V &nbsp; switch to plane<br>R &nbsp; respawn';
 const KEYS_AIR =
   'W / S &nbsp; throttle<br>A / D &nbsp; roll<br>&uarr; / &darr; &nbsp; pitch<br>' +
-  '[ / ] &nbsp; detail<br>V &nbsp; switch to van<br>R &nbsp; respawn';
+  '[ / ] &nbsp; detail<br>G &nbsp; jump to coords<br>V &nbsp; switch to van<br>R &nbsp; respawn';
 
 $('go').addEventListener('click', () => {
   const key = $('key').value.trim();
@@ -134,6 +148,7 @@ $('go').addEventListener('click', () => {
   $('hud').style.display = 'flex';
   $('keys').style.display = 'block';
   $('mode').style.display = 'block';
+  $('compass').style.display = 'block';
   start(key, lat, lon);
 });
 
@@ -312,7 +327,34 @@ function start(API_KEY, LAT, LON) {
 
   /* ---------- input ---------- */
   const keys = {};
+  const jumpBox = $('jump'), jumpIn = $('jumpto');
+  let jumpOpen = false;
+
+  function toggleJump(open) {
+    jumpOpen = open;
+    jumpBox.style.display = open ? 'block' : 'none';
+    if (open) { jumpIn.value = ''; jumpIn.focus(); } else { jumpIn.blur(); }
+    for (const k in keys) keys[k] = false;   // drop stuck keys
+  }
+
+  jumpIn.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.code === 'Escape' || e.code === 'KeyG' && e.ctrlKey) return toggleJump(false);
+    if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
+    const parts = jumpIn.value.split(/[,\s]+/).map(parseFloat).filter(isFinite);
+    if (parts.length < 2 || Math.abs(parts[0]) > 90 || Math.abs(parts[1]) > 180) {
+      jumpIn.value = ''; jumpIn.placeholder = 'Need "latitude, longitude" — e.g. 42.4746, -83.2960';
+      return;
+    }
+    setOrigin(parts[0]*Math.PI/180, parts[1]*Math.PI/180);
+    pos.set(0, mode === 'air' ? 500 : 300, 0);
+    grounded = false;
+    toggleJump(false);
+  });
+
   addEventListener('keydown', e => {
+    if (jumpOpen) { if (e.code === 'Escape') toggleJump(false); return; }
+    if (e.code === 'KeyG') { e.preventDefault(); return toggleJump(true); }
     keys[e.code] = true;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
     if (e.code === 'KeyR') respawn();
@@ -377,6 +419,12 @@ function start(API_KEY, LAT, LON) {
 
   function updateHud(dt) {
     hudT += dt; if (hudT < 0.12) return; hudT = 0;
+
+    // local -Z is true north; +Y rotation turns west, so bearing runs the other way
+    const rad = mode === 'air' ? yaw : heading;
+    const brg = ((-rad * 180/Math.PI) % 360 + 360) % 360;
+    const card = ['N','NE','E','SE','S','SW','W','NW'][Math.round(brg/45) % 8];
+    $('compass').innerHTML = card + ' <span>' + String(Math.round(brg)).padStart(3,'0') + '&deg;</span>';
 
     if (mode === 'air') {
       $('speed').innerHTML = Math.round(airspeed * 1.9438) + '<small>KTS</small>';
