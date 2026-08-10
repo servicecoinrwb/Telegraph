@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegraph Rd — 3D Tiles Drive</title>
+<style>
+  :root {
+    --navy: #16263f;
+    --navy-lift: #1e3455;
+    --sky: #6fb7e3;
+    --cream: #f5efe3;
+    --rust: #b5512f;
+    --dim: rgba(245,239,227,0.45);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--navy);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color:var(--cream); }
+  canvas { display:block; }
+
+  /* ---- gate ---- */
+  #gate { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(120% 100% at 50% 0%, var(--navy-lift), var(--navy) 70%); padding:24px; }
+  #gate .card { width:min(520px,100%); border:1px solid rgba(111,183,227,0.25); background:rgba(0,0,0,0.25);
+    padding:28px; }
+  #gate h1 { margin:0 0 4px; font-size:15px; letter-spacing:0.22em; text-transform:uppercase; color:var(--sky); font-weight:600; }
+  #gate .sub { margin:0 0 22px; font-size:12px; line-height:1.7; color:var(--dim); }
+  label { display:block; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-bottom:7px; }
+  input { width:100%; padding:11px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(245,239,227,0.18);
+    color:var(--cream); font:inherit; font-size:13px; }
+  input:focus { outline:2px solid var(--sky); outline-offset:1px; border-color:transparent; }
+  .row { display:flex; gap:12px; }
+  .row > div { flex:1; }
+  .field { margin-bottom:16px; }
+  .hint { font-size:11px; color:var(--dim); margin-top:7px; line-height:1.6; }
+  .hint a { color:var(--sky); }
+  button { width:100%; margin-top:8px; padding:13px; background:var(--rust); border:0; color:var(--cream);
+    font:inherit; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; }
+  button:hover { background:#c95c36; }
+  button:focus-visible { outline:2px solid var(--sky); outline-offset:2px; }
+
+  /* ---- hud ---- */
+  #hud { position:fixed; left:18px; bottom:18px; z-index:20; display:none; gap:1px; flex-direction:column;
+    border-left:2px solid var(--rust); padding-left:12px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+  #speed { font-size:42px; line-height:1; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; }
+  #speed small { font-size:11px; letter-spacing:0.2em; color:var(--dim); margin-left:6px; }
+  .stat { font-size:11px; color:var(--dim); margin-top:6px; line-height:1.6; max-width:290px; }
+  .stat b { color:var(--sky); font-weight:500; }
+  #stream { display:flex; gap:3px; margin-top:9px; }
+  #stream i { width:9px; height:4px; background:rgba(245,239,227,0.14); }
+  #stream i.on { background:var(--sky); }
+  #stream i.over { background:var(--rust); }
+
+  #keys { position:fixed; right:18px; bottom:18px; z-index:20; display:none; text-align:right;
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); line-height:2; text-transform:uppercase; }
+  #err { position:fixed; top:0; left:0; right:0; z-index:40; background:var(--rust); padding:12px 18px;
+    font-size:12px; line-height:1.6; display:none; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <h1>Telegraph Rd</h1>
+    <p class="sub">Drives a car across Google's photorealistic 3D mesh. Nothing renders until you paste a key — the tile data is fetched live from Google and there's no offline fallback.</p>
+
+    <div class="field">
+      <label for="key">Google Maps Platform API key</label>
+      <input id="key" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
+      <p class="hint">Needs <b>Map Tiles API</b> enabled in your Cloud project. The key stays in this tab's memory only — nothing is saved, so you'll paste it again next load.</p>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="lat">Latitude</label>
+        <input id="lat" type="text" value="42.4746" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="lon">Longitude</label>
+        <input id="lon" type="text" value="-83.2960">
+      </div>
+    </div>
+    <p class="hint" style="margin-top:-6px">Defaults to roughly 23093 Telegraph. Coordinates are eyeballed — nudge them if you land in the wrong lot.</p>
+
+    <button id="go">Start driving</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="speed">0<small>MPH</small></div>
+  <div class="stat" id="ground">Ground: waiting for mesh</div>
+  <div id="stream" aria-hidden="true"></div>
+  <div class="stat" id="tiles">Tile stream idle</div>
+</div>
+
+<div id="keys">
+  W / S &nbsp; throttle · brake<br>
+  A / D &nbsp; steer<br>
+  Space &nbsp; handbrake<br>
+  R &nbsp; respawn
+</div>
+
+<div id="err"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.169.0",
+    "three/addons/": "https://esm.sh/three@0.169.0/examples/jsm/",
+    "3d-tiles-renderer": "https://esm.sh/3d-tiles-renderer@0.4.9?deps=three@0.169.0",
+    "3d-tiles-renderer/plugins": "https://esm.sh/3d-tiles-renderer@0.4.9/plugins?deps=three@0.169.0"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { TilesRenderer } from '3d-tiles-renderer';
+import { GoogleCloudAuthPlugin, GLTFExtensionsPlugin } from '3d-tiles-renderer/plugins';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const $ = id => document.getElementById(id);
+const showErr = m => { const e = $('err'); e.style.display='block'; e.textContent = m; };
+window.addEventListener('error', e => showErr('Script error: ' + e.message));
+
+$('go').addEventListener('click', () => {
+  const key = $('key').value.trim();
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  if (!key) return showErr('Paste an API key first — the tile server rejects anonymous requests.');
+  if (!isFinite(lat) || !isFinite(lon)) return showErr('Latitude and longitude need to be numbers.');
+  $('gate').style.display = 'none';
+  $('hud').style.display = 'flex';
+  $('keys').style.display = 'block';
+  start(key, lat, lon);
+});
+
+function start(API_KEY, LAT, LON) {
+
+  /* ---------- scene ---------- */
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9fc4df);
+  scene.fog = new THREE.Fog(0x9fc4df, 900, 2600);
+
+  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 1, 8000);
+  camera.position.set(0, 12, 24);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 2.4));
+  const sun = new THREE.DirectionalLight(0xfff2dd, 1.4);
+  sun.position.set(-0.5, 1, 0.3);
+  scene.add(sun);
+
+  /* ---------- car (placeholder geometry, no external model) ---------- */
+  const car = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 0.62, 4.4),
+    new THREE.MeshStandardMaterial({ color:0xb5512f, roughness:0.42, metalness:0.35 }));
+  body.position.y = 0.72; car.add(body);
+  const cab = new THREE.Mesh(
+    new THREE.BoxGeometry(1.66, 0.6, 2.0),
+    new THREE.MeshStandardMaterial({ color:0x16263f, roughness:0.2, metalness:0.5 }));
+  cab.position.set(0, 1.28, -0.28); car.add(cab);
+  const wheelGeo = new THREE.CylinderGeometry(0.37, 0.37, 0.26, 14);
+  wheelGeo.rotateZ(Math.PI/2);
+  const wheelMat = new THREE.MeshStandardMaterial({ color:0x111417, roughness:0.9 });
+  for (const [x,z] of [[-0.92,1.42],[0.92,1.42],[-0.92,-1.42],[0.92,-1.42]]) {
+    const w = new THREE.Mesh(wheelGeo, wheelMat);
+    w.position.set(x, 0.37, z); car.add(w);
+  }
+  scene.add(car);
+
+  /* ---------- tiles ---------- */
+  const draco = new DRACOLoader()
+    .setDecoderPath('https://esm.sh/three@0.169.0/examples/jsm/libs/draco/gltf/');
+
+  const tiles = new TilesRenderer();
+  tiles.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: API_KEY, autoRefreshToken:true }));
+  tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: draco }));
+  tiles.setCamera(camera);
+  tiles.setResolutionFromRenderer(camera, renderer);
+  tiles.errorTarget = 18;                 // higher = fewer, coarser tiles = faster streaming
+  scene.add(tiles.group);
+
+  tiles.addEventListener('load-error', e => {
+    showErr('Tile request failed (' + (e.message || 'check the key, its referrer restrictions, and that Map Tiles API is enabled') + ')');
+  });
+
+  /* ---------- rebase the globe so our spawn point is the origin, Y up ----------
+     WGS84 lat/lon -> ECEF, build an East-North-Up frame there, invert it, and
+     rotate ENU (Z-up) into three.js (Y-up). Keeps the car near 0,0,0 so float32
+     precision stays sane. */
+  {
+    const a = 6378137, f = 1/298.257223563, e2 = f*(2-f);
+    const p = LAT*Math.PI/180, l = LON*Math.PI/180, h = 0;
+    const sp = Math.sin(p), cp = Math.cos(p), sl = Math.sin(l), cl = Math.cos(l);
+    const N = a / Math.sqrt(1 - e2*sp*sp);
+    const origin = new THREE.Vector3((N+h)*cp*cl, (N+h)*cp*sl, (N*(1-e2)+h)*sp);
+    const east  = new THREE.Vector3(-sl, cl, 0);
+    const north = new THREE.Vector3(-sp*cl, -sp*sl, cp);
+    const up    = new THREE.Vector3(cp*cl, cp*sl, sp);
+
+    const M = new THREE.Matrix4().makeBasis(east, north, up).setPosition(origin).invert();
+    const R = new THREE.Matrix4().set(1,0,0,0,  0,0,1,0,  0,-1,0,0,  0,0,0,1); // E,N,U -> x,y,-z
+    tiles.group.matrixAutoUpdate = false;
+    tiles.group.matrix.multiplyMatrices(R, M);
+    tiles.group.matrixWorldNeedsUpdate = true;
+  }
+
+  /* ---------- controls ---------- */
+  const keys = {};
+  addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if (e.code === 'KeyR') respawn();
+  });
+  addEventListener('keyup', e => keys[e.code] = false);
+  const held = (...c) => c.some(k => keys[k]);
+
+  let speed = 0, heading = 0, grounded = false;
+  const pos = new THREE.Vector3(0, 300, 0);   // start high; first raycast drops us onto the mesh
+  function respawn() { pos.set(0, 300, 0); speed = 0; heading = 0; grounded = false; }
+
+  const MAX_FWD = 34, MAX_REV = -9;           // m/s — capped so you can't outrun the tile loader
+  const ray = new THREE.Raycaster();
+  ray.firstHitOnly = true;
+  const DOWN = new THREE.Vector3(0,-1,0);
+
+  /* ---------- hud ---------- */
+  const stream = $('stream');
+  for (let i=0;i<14;i++) stream.appendChild(document.createElement('i'));
+  const pips = [...stream.children];
+  let hudT = 0;
+
+  function updateHud(dt) {
+    hudT += dt; if (hudT < 0.1) return; hudT = 0;
+
+    $('speed').innerHTML = Math.round(Math.abs(speed) * 2.2369) + '<small>MPH</small>';
+
+    const s = tiles.stats || {};
+    const loading = (s.downloading || 0) + (s.parsing || 0);
+    pips.forEach((p,i) => {
+      p.className = i < loading ? (loading > 9 ? 'over' : 'on') : '';
+    });
+
+    if (loading > 9) {
+      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> in flight — you\'re ahead of the stream. Ease off and the mesh catches up.';
+    } else if (loading > 0) {
+      $('tiles').innerHTML = '<b>' + loading + ' tiles</b> streaming in.';
+    } else {
+      $('tiles').textContent = 'Tile stream idle — everything in view is loaded.';
+    }
+
+    $('ground').innerHTML = grounded
+      ? 'Ground: <b>locked</b> to mesh. No wall collision — buildings are photogrammetry, not solid.'
+      : 'Ground: <b>no mesh under you yet.</b> Falling until tiles arrive.';
+  }
+
+  /* ---------- loop ---------- */
+  const clock = new THREE.Clock();
+  const camTarget = new THREE.Vector3();
+
+  function tick() {
+    requestAnimationFrame(tick);
+    const dt = Math.min(clock.getDelta(), 0.05);
+
+    // longitudinal
+    if (held('KeyW','ArrowUp'))        speed += 13 * dt;
+    else if (held('KeyS','ArrowDown')) speed -= 17 * dt;
+    else                               speed *= (1 - 0.7 * dt);
+    if (held('Space'))                 speed *= (1 - 3.2 * dt);
+    speed = THREE.MathUtils.clamp(speed, MAX_REV, MAX_FWD);
+
+    // steering scales down with speed so it isn't twitchy on the highway
+    const grip = Math.min(1, Math.abs(speed) / 5.5);
+    const rate = 1.6 * grip * Math.sign(speed || 1);
+    if (held('KeyA','ArrowLeft'))  heading += rate * dt;
+    if (held('KeyD','ArrowRight')) heading -= rate * dt;
+
+    pos.x -= Math.sin(heading) * speed * dt;
+    pos.z -= Math.cos(heading) * speed * dt;
+
+    // ground follow: cast down onto whatever tile mesh is loaded
+    ray.set(new THREE.Vector3(pos.x, pos.y + 400, pos.z), DOWN);
+    ray.far = 3000;
+    const hit = ray.intersectObject(tiles.group, true)[0];
+    if (hit) {
+      pos.y = grounded ? THREE.MathUtils.lerp(pos.y, hit.point.y, 1 - Math.pow(0.001, dt))
+                       : hit.point.y;
+      grounded = true;
+    } else {
+      pos.y -= 60 * dt;       // no mesh yet — sink slowly rather than freeze
+      grounded = false;
+    }
+
+    car.position.copy(pos);
+    car.rotation.y = heading;
+
+    // chase cam
+    camTarget.set(
+      pos.x + Math.sin(heading) * 13,
+      pos.y + 5.6,
+      pos.z + Math.cos(heading) * 13
+    );
+    camera.position.lerp(camTarget, 1 - Math.pow(0.0015, dt));
+    camera.lookAt(pos.x, pos.y + 1.6, pos.z);
+
+    camera.updateMatrixWorld();
+    tiles.update();
+    updateHud(dt);
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    tiles.setResolutionFromRenderer(camera, renderer);
+  });
+}
+</script>
+</body>
+</html>
